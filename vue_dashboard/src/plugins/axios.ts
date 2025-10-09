@@ -1,63 +1,55 @@
-import axios from 'axios'
+import axios from "axios";
 
 const axiosInstance = axios.create({
-  baseURL: 'https://api.escuelajs.co/api/v1',
-  headers: { 'Content-Type': 'application/json' },
-})
+  baseURL: "https://api.escuelajs.co/api/v1",
+  headers: { "Content-Type": "application/json" },
+});
 
 axiosInstance.interceptors.request.use((config) => {
-  if (typeof window !== 'undefined') {
-    const storedTokens = window.localStorage.getItem('authTokens')
+  if (typeof window !== "undefined") {
+    const storedTokens = window.localStorage.getItem("authTokens");
     if (storedTokens) {
       const { access_token } = JSON.parse(storedTokens) as {
-        access_token?: string
-      }
+        access_token?: string;
+      };
 
       if (access_token) {
-        config.headers = config.headers ?? {}
-        config.headers.Authorization = `Bearer ${access_token}`
+        config.headers = config.headers ?? {};
+        config.headers.Authorization = `Bearer ${access_token}`;
       }
     }
   }
 
-  return config
-})
+  return config;
+});
 
-
-
-
-export default axiosInstance
+export default axiosInstance;
 
 export function setupAxiosInterceptors(getAuthStore: () => any, router: any) {
   axiosInstance.interceptors.response.use(
     (res) => res,
     async (err) => {
       try {
-        const status = err?.response?.status
+        const status = err?.response?.status;
         if (status === 401) {
           try {
-            const authStore = getAuthStore()
-            if (authStore && typeof authStore.logout === 'function') {
-           
-              await authStore.logout()
+            const authStore = getAuthStore();
+            if (authStore && typeof authStore.logout === "function") {
+              await authStore.logout();
             }
           } catch (e) {
-            console.error('Error while performing client logout after 401', e)
+            console.error("Error while performing client logout after 401", e);
           }
 
           try {
-            if (router && typeof router.push === 'function') {
-              router.push({ name: 'login', query: { sessionExpired: '1' } })
+            if (router && typeof router.push === "function") {
+              router.push({ name: "login", query: { sessionExpired: "1" } });
             }
-          } catch (e) {
-         
-          }
+          } catch (e) {}
         }
-      } catch (outer) {
-       
-      }
+      } catch (outer) {}
 
-      return Promise.reject(err)
-    },
-  )
+      return Promise.reject(err);
+    }
+  );
 }

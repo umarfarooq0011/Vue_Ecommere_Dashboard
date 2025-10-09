@@ -1,11 +1,7 @@
 import { createRouter, createWebHistory } from "vue-router";
 import Login from "../Views/Auth/Login.vue";
 import Register from "../Views/Auth/Register.vue";
-import Dashboard from '../Views/index.vue'
-
-
-
-
+import Dashboard from "../Views/index.vue";
 
 import { useAuthStore } from "../Store/AuthStore";
 
@@ -18,8 +14,6 @@ const router = createRouter({
       component: Dashboard,
       meta: { requiresAuth: true },
     },
-
-    
 
     {
       path: "/login",
@@ -37,17 +31,17 @@ const router = createRouter({
 });
 
 router.beforeEach((to, _from, next) => {
-  const authStore = useAuthStore()
+  const authStore = useAuthStore();
 
   if (to.meta.requiresAuth && !authStore.isAuthenticated) {
-    return next({ name: 'login', query: { redirect: to.fullPath } })
+    return next({ name: "login", query: { redirect: to.fullPath } });
   }
 
   if ((to.meta as any).requiresGuest && authStore.isAuthenticated) {
-    return next({ name: 'dashboard' })
+    return next({ name: "dashboard" });
   }
 
-  return next()
-})
+  return next();
+});
 
 export default router;

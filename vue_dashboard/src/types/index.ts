@@ -1,7 +1,4 @@
-export interface APIRESPONSE<T> {
-  message?: string
-  data: T
-}
+
 
 export interface AuthTokens {
   access_token: string
@@ -29,14 +26,6 @@ export interface LoginPayload {
   password: string
 }
 
-export interface Category {
-  id: number
-  name: string
-  image: string
-  creationAt: string
-  updatedAt: string
-}
-
 export interface Product {
   id: number
   title: string
@@ -45,7 +34,7 @@ export interface Product {
   images: string[]
   creationAt: string
   updatedAt: string
-  category: Category
+  // category removed - not used in this build
    stock?: number
 }
 

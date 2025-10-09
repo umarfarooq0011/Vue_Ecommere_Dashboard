@@ -13,16 +13,18 @@ const REGISTERED_USER_STORAGE_KEY = 'authRegisteredUser'
 
 type StoredRegistration = RegisterPayload & { userId?: number }
 
+
+      // helper to read and parse JSON from localStorage
 const readFromStorage = <T>(key: string): T | null => {
   if (typeof window === 'undefined') {
     return null
   }
-
+      // Read raw value from localStorage
   const rawValue = window.localStorage.getItem(key)
   if (!rawValue) {
     return null
   }
-
+   // Attempt to parse stored JSON value to T type type that i mentioned in types
   try {
     return JSON.parse(rawValue) as T
   } catch (error) {
@@ -32,6 +34,7 @@ const readFromStorage = <T>(key: string): T | null => {
   }
 }
 
+// FOR WRITE TO LOCAL STORAGE
 const persistValue = <T>(key: string, value: T | null) => {
   if (typeof window === 'undefined') {
     return
@@ -41,10 +44,10 @@ const persistValue = <T>(key: string, value: T | null) => {
     window.localStorage.removeItem(key)
     return
   }
-
+      
   window.localStorage.setItem(key, JSON.stringify(value))
 }
-
+    
 export const useAuthStore = defineStore('auth', {
   state: () => ({
     user: readFromStorage<UserProfile>(USER_STORAGE_KEY) as UserProfile | null,
@@ -73,7 +76,9 @@ export const useAuthStore = defineStore('auth', {
 
         this.user = { ...data, role: form.role }
         persistValue(USER_STORAGE_KEY, this.user)
-
+               
+        // Store registration info locally to allow local login fallback
+        // (since the API doesn't support registering + logging in)
         const storedRegistration: StoredRegistration = {
           ...form,
           userId: data.id,
@@ -120,7 +125,10 @@ export const useAuthStore = defineStore('auth', {
 
           this.user = persistedProfile
           persistValue(USER_STORAGE_KEY, persistedProfile)
-
+               
+          // offline tokens - not real, just to mark authenticated state
+          // this api doesn't provide real tokens
+          // in real apps, never do this - tokens must come from server!
           const localTokens: AuthTokens = {
             access_token: 'local-access-token',
             refresh_token: 'local-refresh-token',

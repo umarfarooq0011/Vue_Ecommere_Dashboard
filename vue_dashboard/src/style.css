@@ -1,2 +1,33 @@
 @import "tailwindcss";
 
+/* Helper to disable hover/active visual changes on interactive controls */
+.no-hover {
+	/* keep pointer events and baseline styles */
+	pointer-events: auto;
+}
+
+/* Vuetify v-btn strong overrides for buttons where we want no hover change. */
+/* Targets v-btn elements that also have the no-hover class (via class or activator props). */
+.no-hover .v-btn,
+.v-btn.no-hover,
+button.v-btn.no-hover {
+	transition: none !important;
+	background-color: transparent !important;
+}
+
+/* Remove hover/active background color on Vuetify text/tonal buttons when no-hover is present */
+.v-btn.no-hover:hover,
+.v-btn.no-hover:active,
+.no-hover .v-btn:hover,
+.no-hover .v-btn:active {
+	background-color: transparent !important;
+	box-shadow: none !important;
+	transform: none !important;
+}
+
+/* Fallback: when a v-btn uses internal classes that set background on hover, reset it */
+.v-btn.no-hover .v-btn__overlay,
+.no-hover .v-btn__overlay {
+	background-color: transparent !important;
+}
+

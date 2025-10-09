@@ -1,16 +1,12 @@
 import { defineStore } from 'pinia'
 import { computed, reactive, ref } from 'vue'
 import api from '../plugins/axios'
-import type {
-  Category,
-  CreateProductPayload,
-  Product,
-  UpdateProductPayload,
-} from '../types'
+import type { CreateProductPayload, Product, UpdateProductPayload } from '../types'
 
 const DEFAULT_IMAGE =
   'https://images.pexels.com/photos/7156889/pexels-photo-7156889.jpeg?auto=compress&cs=tinysrgb&w=800'
 const DEFAULT_CATEGORY_ID = 1
+
 
 interface PaginationState {
   currentPage: number
@@ -20,14 +16,11 @@ interface PaginationState {
 
 export const useProductStore = defineStore('products', () => {
   // ─── STATE ──────────────────────────────────────────────────────
-  const categories = ref<Category[]>([])
   const products = ref<Product[]>([])
 
-  const loadingCategories = ref(false)
   const loadingProducts = ref(false)
   const creatingProduct = ref(false)
 
-  const categoryError = ref<string | null>(null)
   const productError = ref<string | null>(null)
   const creationError = ref<string | null>(null)
   const creationSuccess = ref<string | null>(null)
@@ -46,15 +39,12 @@ export const useProductStore = defineStore('products', () => {
   const updatingProducts = ref<Record<number, boolean>>({})
 
   // ─── COMPUTED ───────────────────────────────────────────────────
-  const hasCategories = computed(() => categories.value.length > 0)
-  const hasProducts = computed(() => products.value.length > 0)
   const totalPages = computed(() =>
     pagination.pageSize > 0
       ? Math.max(1, Math.ceil(pagination.total / pagination.pageSize))
       : 1,
   )
-  const hasPreviousPage = computed(() => pagination.currentPage > 1)
-  const hasNextPage = computed(() => pagination.currentPage < totalPages.value)
+
   const skeletonRows = computed(() => pagination.pageSize)
   const showingRange = computed(() => {
     if (!products.value.length) return { start: 0, end: 0 }
@@ -62,23 +52,6 @@ export const useProductStore = defineStore('products', () => {
     const end = start + products.value.length - 1
     return { start, end }
   })
-
-  // ─── FETCH CATEGORIES ────────────────────────────────────────────
-  const fetchCategories = async () => {
-    if (loadingCategories.value) return
-
-    loadingCategories.value = true
-    categoryError.value = null
-    try {
-      const { data } = await api.get<Category[]>('/categories')
-      categories.value = data
-    } catch (error: any) {
-      categoryError.value =
-        error?.response?.data?.message || error?.message || 'Unable to load categories.'
-    } finally {
-      loadingCategories.value = false
-    }
-  }
 
   // ─── TOTAL COUNT FOR SEARCH ─────────────────────────────────────
   const fetchTotalForQuery = async (query: string) => {
@@ -176,7 +149,6 @@ export const useProductStore = defineStore('products', () => {
       const { data } = await api.post<Product>('/products', body)
       const createdProduct: Product = { ...data, images }
 
-      // Refresh and keep first-page display synced
       pagination.currentPage = 1
       totalLoadedForQuery.value = null
       await fetchProducts(1, { force: true, reloadTotal: true })
@@ -284,28 +256,18 @@ export const useProductStore = defineStore('products', () => {
 
   // ─── EXPORT ─────────────────────────────────────────────────────
   return {
-    categories,
     products,
-    loadingCategories,
     loadingProducts,
     creatingProduct,
-    categoryError,
     productError,
     creationError,
     creationSuccess,
-    hasCategories,
-    hasProducts,
     pagination,
     searchQuery,
     totalPages,
-    hasPreviousPage,
-    hasNextPage,
     skeletonRows,
     showingRange,
     hasHydrated,
-    deletingProducts,
-    updatingProducts,
-    fetchCategories,
     fetchProducts,
     setPageSize,
     goToPage,

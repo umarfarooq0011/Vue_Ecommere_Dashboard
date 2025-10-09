@@ -207,7 +207,6 @@ const {
   creatingProduct,
   creationError,
   creationSuccess,
-  updatingProducts,
 } = storeToRefs(productStore)
 
 const formRef = ref()
@@ -237,7 +236,7 @@ const submitLabel = computed(() =>
   isEditMode.value ? 'Save changes' : 'Add product',
 )
 const updateLoading = computed(() =>
-  props.product ? !!updatingProducts.value?.[props.product.id] : false,
+  props.product ? productStore.isUpdatingProduct(props.product.id) : false,
 )
 const isSubmitting = computed(() =>
   isEditMode.value ? updateLoading.value : creatingProduct.value,
