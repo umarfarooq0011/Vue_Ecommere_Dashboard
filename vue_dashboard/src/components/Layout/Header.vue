@@ -8,7 +8,7 @@
           v-for="link in navigationLinks"
           :key="link.name"
           :to="link.to"
-          class="text-gray-600 hover:text-blue-600 transition-colors"
+          class="text-gray-600"
           :class="{ 'text-blue-600 font-medium': isRouteActive(link.name) }"
         >
           {{ link.label }}
@@ -79,7 +79,6 @@ const navigationLinks: Array<{
   label: string
 }> = [
   { name: 'dashboard', to: { name: 'dashboard' }, label: 'Home' },
-  { name: 'categories', to: { name: 'categories' }, label: 'Categories' },
 ]
 
 const userAvatar = computed(

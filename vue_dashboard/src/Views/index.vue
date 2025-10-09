@@ -7,7 +7,7 @@
           <p class="text-sm font-medium uppercase tracking-[0.18em] text-primary">Dashboard</p>
           <h1 class="text-3xl font-semibold text-gray-900">All products</h1>
           <p class="text-sm text-gray-500">
-            Upload, edit, and remove products from your shop without leaving this page.
+            Upload, edit, and remove products from your shop.
           </p>
         </div>
         <div class="flex items-center gap-3">
@@ -19,15 +19,7 @@
           >
             Add product
           </v-btn>
-          <v-btn
-            variant="tonal"
-            color="grey"
-            class="rounded-full"
-            prepend-icon="mdi-refresh"
-            @click="refreshProducts"
-          >
-            Refresh
-          </v-btn>
+         
         </div>
       </header>
 
@@ -127,23 +119,16 @@ const closeProductDialog = () => {
 }
 
 // ─── Product CRUD Feedback ────────────────────────────────────────────
-const onProductCreated = () => {
+const onProductCreated = (_product: Product) => {
   notifier.success('Product created successfully')
   closeProductDialog()
 }
 
-const onProductUpdated = () => {
+const onProductUpdated = (_product: Product) => {
   notifier.success('Product updated successfully')
   closeProductDialog()
 }
 
-// ─── Refresh Products ─────────────────────────────────────────────────
-const refreshProducts = () => {
-  productStore.fetchProducts(productStore.pagination.currentPage, {
-    force: true,
-    reloadTotal: true,
-  })
-}
 
 // ─── Delete Handling ──────────────────────────────────────────────────
 const requestDelete = (product: Product) => {

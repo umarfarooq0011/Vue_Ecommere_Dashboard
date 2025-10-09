@@ -10,6 +10,7 @@ import type {
 
 const DEFAULT_IMAGE =
   'https://images.pexels.com/photos/7156889/pexels-photo-7156889.jpeg?auto=compress&cs=tinysrgb&w=800'
+const DEFAULT_CATEGORY_ID = 1
 
 interface PaginationState {
   currentPage: number
@@ -36,6 +37,7 @@ export const useProductStore = defineStore('products', () => {
     pageSize: 8,
     total: 0,
   })
+
   const searchQuery = ref('')
   const hasHydrated = ref(false)
   const totalLoadedForQuery = ref<string | null>(null)
@@ -46,7 +48,6 @@ export const useProductStore = defineStore('products', () => {
   // ─── COMPUTED ───────────────────────────────────────────────────
   const hasCategories = computed(() => categories.value.length > 0)
   const hasProducts = computed(() => products.value.length > 0)
-
   const totalPages = computed(() =>
     pagination.pageSize > 0
       ? Math.max(1, Math.ceil(pagination.total / pagination.pageSize))
@@ -165,17 +166,36 @@ export const useProductStore = defineStore('products', () => {
     creationError.value = null
     creationSuccess.value = null
     try {
+      const images = payload.images?.length ? payload.images : [DEFAULT_IMAGE]
       const body: CreateProductPayload = {
         ...payload,
-        images: payload.images?.length ? payload.images : [DEFAULT_IMAGE],
+        categoryId: payload.categoryId ?? DEFAULT_CATEGORY_ID,
+        images,
       }
 
       const { data } = await api.post<Product>('/products', body)
+      const createdProduct: Product = { ...data, images }
+
+      // Refresh and keep first-page display synced
       pagination.currentPage = 1
       totalLoadedForQuery.value = null
       await fetchProducts(1, { force: true, reloadTotal: true })
+
+      const existingIndex = products.value.findIndex(
+        (product) => product.id === createdProduct.id,
+      )
+
+      if (existingIndex !== -1) {
+        products.value.splice(existingIndex, 1, createdProduct)
+      } else if (pagination.currentPage === 1) {
+        products.value = [createdProduct, ...products.value]
+        if (products.value.length > pagination.pageSize) {
+          products.value = products.value.slice(0, pagination.pageSize)
+        }
+      }
+
       creationSuccess.value = 'Product added successfully.'
-      return data
+      return createdProduct
     } catch (error: any) {
       const message =
         error?.response?.data?.message || error?.message || 'Unable to create product.'

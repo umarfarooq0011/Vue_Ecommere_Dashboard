@@ -53,7 +53,7 @@ export interface CreateProductPayload {
   title: string
   price: number
   description: string
-  categoryId: number
+  categoryId?: number
   images: string[]
 }
 

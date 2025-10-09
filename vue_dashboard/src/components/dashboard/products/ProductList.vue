@@ -97,7 +97,7 @@
           <article
             v-for="product in products"
             :key="product.id"
-            class="flex h-full flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-md"
+            class="flex h-full flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"
           >
             <v-img
               :src="product.images?.[0] || fallbackImage"
@@ -120,7 +120,6 @@
                 </span>
                 <div class="flex items-center gap-2">
                   <v-btn
-                    variant="tonal"
                     color="primary"
                     density="comfortable"
                     prepend-icon="mdi-pencil"
@@ -130,7 +129,6 @@
                     Edit
                   </v-btn>
                   <v-btn
-                    variant="tonal"
                     color="error"
                     density="comfortable"
                     prepend-icon="mdi-trash-can"
@@ -154,7 +152,7 @@
       v-if="isHydrated && totalPages > 1"
       class="flex flex-col gap-4 border-t border-slate-100 px-6 py-5 sm:flex-row sm:items-center sm:justify-between"
     >
-      <p class="text-sm text-gray-500">
+      <p class="text-sm text-gray-500 ">
         Page {{ pagination.currentPage }} of {{ totalPages }}
       </p>
       <v-pagination

@@ -76,18 +76,7 @@
           />
         </div>
 
-        <v-select
-          v-model="form.categoryId"
-          label="Category"
-          :items="categoryOptions"
-          item-title="label"
-          item-value="value"
-          variant="outlined"
-          :loading="loadingCategories"
-          :rules="[requiredRule]"
-          no-data-text="No categories found"
-        />
-
+      
         <v-textarea
           v-model="form.description"
           label="Description"
@@ -103,19 +92,19 @@
           class="relative border-2 border-dashed border-slate-300 rounded-2xl transition-all duration-200 cursor-pointer group"
           :class="{
             'border-primary bg-primary/5 shadow-inner': isOver,
-            'hover:border-primary/70 hover:bg-slate-50': !isOver,
+           
           }"
           role="button"
           tabindex="0"
-          @click.prevent="triggerFilePicker"
-          @keydown.enter.prevent="triggerFilePicker"
-          @keydown.space.prevent="triggerFilePicker"
+          @click="triggerFilePicker"
+          @keydown.enter="triggerFilePicker"
+          @keydown.space="triggerFilePicker"
         >
           <input
             ref="hiddenFileInput"
             type="file"
             accept="image/*"
-            class="hidden"
+            class="sr-only"
             @change="onFileChange"
           />
 
@@ -132,7 +121,7 @@
               variant="tonal"
               color="primary"
               class="mt-1"
-              @click.stop.prevent="triggerFilePicker"
+              @click.stop="triggerFilePicker"
             >
               Browse files
             </v-btn>
@@ -145,20 +134,7 @@
             >
               <span class="text-white text-sm font-medium">Image preview</span>
               <div class="flex items-center gap-2">
-                <v-tooltip text="Change image" location="bottom">
-                  <template #activator="{ props }">
-                    <v-btn
-                      icon
-                      size="small"
-                      variant="text"
-                      color="white"
-                      v-bind="props"
-                      @click.stop.prevent="triggerFilePicker"
-                    >
-                      <v-icon size="20">mdi-refresh</v-icon>
-                    </v-btn>
-                  </template>
-                </v-tooltip>
+                
                 <v-tooltip text="Remove" location="bottom">
                   <template #activator="{ props }">
                     <v-btn
@@ -178,15 +154,7 @@
           </div>
         </div>
 
-        <!-- Optional direct URL -->
-        <v-text-field
-          v-model="form.image"
-          label="Or image URL"
-          placeholder="https://..."
-          variant="outlined"
-          clearable
-          @focus="removeSelectedFileOnly"
-        />
+       
 
         <!-- Footer Buttons -->
         <div class="flex justify-end gap-3 pt-2">
@@ -216,7 +184,6 @@ interface CreateProductFormState {
   title: string
   price: number | null
   stock: number | null
-  categoryId: number | null
   description: string
   image: string
 }
@@ -240,7 +207,6 @@ const {
   creatingProduct,
   creationError,
   creationSuccess,
-  loadingCategories,
   updatingProducts,
 } = storeToRefs(productStore)
 
@@ -259,7 +225,6 @@ const form = reactive<CreateProductFormState>({
   title: '',
   price: null,
   stock: null,
-  categoryId: null,
   description: '',
   image: '',
 })
@@ -278,12 +243,7 @@ const isSubmitting = computed(() =>
   isEditMode.value ? updateLoading.value : creatingProduct.value,
 )
 
-const categoryOptions = computed(() =>
-  productStore.categories.map((category) => ({
-    label: category.name,
-    value: category.id,
-  })),
-)
+
 
 const successMessage = computed(() =>
   isEditMode.value ? updateSuccess.value : creationSuccess.value,
@@ -311,7 +271,6 @@ const resetForm = () => {
   form.title = ''
   form.price = null
   form.stock = null
-  form.categoryId = null
   form.description = ''
   form.image = ''
   localError.value = null
@@ -327,7 +286,6 @@ const hydrateForm = (p: Product | null | undefined) => {
   if (!p) return resetForm()
   form.title = p.title
   form.price = p.price
-  form.categoryId = p.category?.id ?? null
   form.description = p.description
   form.image = p.images?.[0] ?? ''
   form.stock = p.stock ?? null
@@ -425,7 +383,7 @@ const buildImagesPayload = async () => {
 
 const handleSubmit = async () => {
   const res = formRef.value ? await formRef.value.validate() : { valid: true }
-  if (!res.valid || form.price === null || form.categoryId === null) return
+  if (!res.valid || form.price === null ) return
   localError.value = updateError.value = updateSuccess.value = null
   try {
     const imgs = await buildImagesPayload()
@@ -436,7 +394,6 @@ const handleSubmit = async () => {
         title: form.title.trim(),
         price: Number(form.price),
         description: form.description.trim(),
-        categoryId: form.categoryId,
         images: imgs,
       })
       updateSuccess.value = 'Product updated successfully.'
@@ -446,7 +403,6 @@ const handleSubmit = async () => {
         title: form.title.trim(),
         price: Number(form.price),
         description: form.description.trim(),
-        categoryId: form.categoryId,
         images: imgs,
       })
       emit('created', created)
@@ -468,7 +424,6 @@ const handleClose = () => {
 }
 
 onMounted(() => {
-  if (!productStore.hasCategories) productStore.fetchCategories()
   bindDropzone(dropzoneRef.value)
 })
 onBeforeUnmount(() => {

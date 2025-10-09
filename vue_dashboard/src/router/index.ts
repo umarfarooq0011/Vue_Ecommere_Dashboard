@@ -8,7 +8,6 @@ import Dashboard from '../Views/index.vue'
 
 
 import { useAuthStore } from "../Store/AuthStore";
-import Categories from "../Views/Categories.vue";
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -20,12 +19,7 @@ const router = createRouter({
       meta: { requiresAuth: true },
     },
 
-    {
-      path: "/categories",
-      name: "categories",
-      component: Categories,
-      meta: { requiresAuth: true },
-    },
+    
 
     {
       path: "/login",
