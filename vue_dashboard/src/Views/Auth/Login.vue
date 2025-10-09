@@ -50,6 +50,9 @@
             Sign In
           </v-btn>
 
+          <p v-if="successMessage" class="text-sm text-green-600 text-center">
+            {{ successMessage }}
+          </p>
           <p v-if="errorMessage" class="text-sm text-red-500 text-center">
             {{ errorMessage }}
           </p>
@@ -73,7 +76,7 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, ref } from 'vue'
+import { onMounted, reactive, ref } from 'vue'
 import { RouterLink, useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '../../Store/AuthStore'
 
@@ -87,9 +90,41 @@ const form = reactive({
 })
 
 const errorMessage = ref('')
+const successMessage = ref('')
+
+const REGISTERED_USER_STORAGE_KEY = 'authRegisteredUser'
+
+onMounted(() => {
+  if (route.query.registered === '1') {
+    successMessage.value = 'Registration successful. Please sign in with the same credentials.'
+  }
+
+  if (typeof window === 'undefined') {
+    return
+  }
+
+  try {
+    const storedRegistration = window.localStorage.getItem(
+      REGISTERED_USER_STORAGE_KEY,
+    )
+
+    if (storedRegistration) {
+      const parsed = JSON.parse(storedRegistration) as {
+        email?: string
+        password?: string
+      }
+
+      form.email = parsed.email ?? form.email
+      form.password = parsed.password ?? form.password
+    }
+  } catch (storageError) {
+    console.warn('Unable to read stored registration details', storageError)
+  }
+})
 
 const onSubmit = async () => {
   errorMessage.value = ''
+  successMessage.value = ''
 
   if (!form.email || !form.password) {
     errorMessage.value = 'Please provide an email and password.'
@@ -102,8 +137,8 @@ const onSubmit = async () => {
     router.push(redirectPath)
   } catch (error) {
     console.error('Login failed:', error)
-    // Prefer server-supplied message when available
-    errorMessage.value = (error as Error).message || 'Unable to sign in with the provided credentials.'
+    errorMessage.value =
+      (error as Error).message || 'Unable to sign in with the provided credentials.'
   }
 }
 </script>
