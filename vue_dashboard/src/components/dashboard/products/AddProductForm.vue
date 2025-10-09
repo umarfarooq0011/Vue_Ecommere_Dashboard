@@ -1,79 +1,80 @@
 <template>
-  <v-card class="h-100" elevation="2">
-    <div class="flex items-center justify-between px-4 pt-4">
-      <div class="text-h6 font-semibold">Add New Product</div>
-      <v-btn icon aria-label="Close" @click="emitClose">
+  <v-card class="h-100 overflow-hidden" elevation="2">
+    <!-- Header -->
+    <div class="flex items-center justify-between px-5 pt-5 pb-3">
+      <div>
+        <h2 class="text-lg font-semibold text-gray-900">{{ titleLabel }}</h2>
+        <p class="text-sm text-gray-500" v-if="isEditMode">
+          Update product details, pricing, and imagery in a single place.
+        </p>
+        <p class="text-sm text-gray-500" v-else>
+          Create a stunning product card with imagery, price, and category in minutes.
+        </p>
+      </div>
+      <v-btn icon aria-label="Close" variant="text" color="grey" @click="handleClose">
         <v-icon>mdi-close</v-icon>
       </v-btn>
     </div>
+
     <v-divider />
 
-    <v-card-text class="p-4 max-h-[70vh] overflow-y-auto">
+    <v-card-text class="p-5 max-h-[70vh] overflow-y-auto space-y-4">
+      <!-- Success / Error Alerts -->
       <v-alert
-        v-if="creationSuccess"
+        v-if="successMessage"
         type="success"
-        class="mb-4"
+        class="rounded-xl"
         density="comfortable"
         closable
-        @click:close="clearCreationStatus"
+        @click:close="clearMessages"
       >
-        {{ creationSuccess }}
+        {{ successMessage }}
       </v-alert>
 
       <v-alert
-        v-if="creationError"
+        v-if="errorMessage"
         type="error"
-        class="mb-4"
+        class="rounded-xl"
         density="comfortable"
         closable
-        @click:close="clearCreationStatus"
+        @click:close="clearMessages"
       >
-        {{ creationError }}
+        {{ errorMessage }}
       </v-alert>
 
-      <v-alert
-        v-if="localError"
-        type="error"
-        class="mb-4"
-        density="comfortable"
-        closable
-        @click:close="() => (localError = null)"
-      >
-        {{ localError }}
-      </v-alert>
-
-      <v-form @submit.prevent="handleSubmit" ref="formRef">
+      <!-- Form -->
+      <v-form ref="formRef" @submit.prevent="handleSubmit" class="space-y-4">
         <v-text-field
           v-model="form.title"
           label="Product title"
           placeholder="E.g. Premium leather backpack"
           variant="outlined"
           :rules="[requiredRule]"
-          class="mb-4"
         />
 
-        <v-text-field
-          v-model.number="form.price"
-          label="Price"
-          type="number"
-          min="0"
-          step="0.01"
-          prefix="$"
-          variant="outlined"
-          :rules="[requiredRule, positiveNumberRule]"
-          class="mb-4"
-        />
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <v-text-field
+            v-model.number="form.price"
+            label="Price"
+            type="number"
+            min="0"
+            step="0.01"
+            prefix="$"
+            variant="outlined"
+            :rules="[requiredRule, positiveNumberRule]"
+          />
 
-        <v-text-field
-          v-model.number="form.stock"
-          label="Stock"
-          type="number"
-          min="0"
-          step="1"
-          variant="outlined"
-          :rules="[requiredRule]"
-          class="mb-4"
-        />
+          <v-text-field
+            v-model.number="form.stock"
+            label="Stock"
+            type="number"
+            min="0"
+            step="1"
+            variant="outlined"
+            hint="Optional — keep track of inventory locally"
+            persistent-hint
+          />
+        </div>
 
         <v-select
           v-model="form.categoryId"
@@ -84,7 +85,6 @@
           variant="outlined"
           :loading="loadingCategories"
           :rules="[requiredRule]"
-          class="mb-4"
           no-data-text="No categories found"
         />
 
@@ -95,56 +95,122 @@
           auto-grow
           variant="outlined"
           :rules="[requiredRule]"
-          class="mb-4"
         />
 
-        <!-- Custom drag-and-drop dropzone -->
-                <div
-                  ref="dropzoneRef"
-                  class="dropzone mb-4 border-dashed border-2 rounded-lg"
-                  :class="{ 'dropzone--active': isOver }
-                ">
-                  <input ref="hiddenFileInput" type="file" accept="image/*" class="hidden" @change="onFileChange" />
-                  <div class="flex flex-col items-center justify-center p-6 text-center text-gray-500">
-                    <p class="mb-2 font-medium">Drag some files here</p>
-                    <p class="text-sm">or click here to upload</p>
-                    <v-btn variant="text" color="primary" class="mt-3" @click.prevent="triggerFilePicker">Choose file</v-btn>
-                  </div>
-                </div>
+        <!-- Drag & Drop Image Upload -->
+        <div
+          ref="dropzoneRef"
+          class="relative border-2 border-dashed border-slate-300 rounded-2xl transition-all duration-200 cursor-pointer group"
+          :class="{
+            'border-primary bg-primary/5 shadow-inner': isOver,
+            'hover:border-primary/70 hover:bg-slate-50': !isOver,
+          }"
+          role="button"
+          tabindex="0"
+          @click.prevent="triggerFilePicker"
+          @keydown.enter.prevent="triggerFilePicker"
+          @keydown.space.prevent="triggerFilePicker"
+        >
+          <input
+            ref="hiddenFileInput"
+            type="file"
+            accept="image/*"
+            class="hidden"
+            @change="onFileChange"
+          />
 
-        <!-- Optional fallback: user can still paste an image URL -->
-        <v-text-field
-          v-model="form.image"
-          label="Or image URL (optional)"
-          placeholder="https://..."
-          variant="outlined"
-          class="mb-4"
-        />
+          <div
+            v-if="!previewUrl"
+            class="flex flex-col items-center justify-center px-6 py-10 text-center text-slate-500 gap-3"
+          >
+            <v-icon size="40" color="primary">mdi-cloud-upload-outline</v-icon>
+            <p class="text-base font-medium">Drag & drop product imagery</p>
+            <p class="text-sm text-slate-400">
+              High-resolution PNG or JPG up to 5&nbsp;MB.
+            </p>
+            <v-btn
+              variant="tonal"
+              color="primary"
+              class="mt-1"
+              @click.stop.prevent="triggerFilePicker"
+            >
+              Browse files
+            </v-btn>
+          </div>
 
-        <div v-if="previewUrl" class="mb-4">
-          <label class="block text-sm text-gray-600 mb-1">Preview</label>
-          <v-img :src="previewUrl" height="140" cover class="rounded-md" />
+          <div v-else class="relative overflow-hidden rounded-xl">
+            <v-img :src="previewUrl" height="210" cover class="rounded-xl" />
+            <div
+              class="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent flex items-end justify-between p-3"
+            >
+              <span class="text-white text-sm font-medium">Image preview</span>
+              <div class="flex items-center gap-2">
+                <v-tooltip text="Change image" location="bottom">
+                  <template #activator="{ props }">
+                    <v-btn
+                      icon
+                      size="small"
+                      variant="text"
+                      color="white"
+                      v-bind="props"
+                      @click.stop.prevent="triggerFilePicker"
+                    >
+                      <v-icon size="20">mdi-refresh</v-icon>
+                    </v-btn>
+                  </template>
+                </v-tooltip>
+                <v-tooltip text="Remove" location="bottom">
+                  <template #activator="{ props }">
+                    <v-btn
+                      icon
+                      size="small"
+                      variant="text"
+                      color="white"
+                      v-bind="props"
+                      @click.stop.prevent="removeSelectedImage"
+                    >
+                      <v-icon size="20">mdi-close</v-icon>
+                    </v-btn>
+                  </template>
+                </v-tooltip>
+              </div>
+            </div>
+          </div>
         </div>
 
-        <v-btn
-          type="submit"
-          color="primary"
-          class="w-full"
-          :loading="creatingProduct"
-          :disabled="creatingProduct"
-        >
-          Add product
-        </v-btn>
+        <!-- Optional direct URL -->
+        <v-text-field
+          v-model="form.image"
+          label="Or image URL"
+          placeholder="https://..."
+          variant="outlined"
+          clearable
+          @focus="removeSelectedFileOnly"
+        />
+
+        <!-- Footer Buttons -->
+        <div class="flex justify-end gap-3 pt-2">
+          <v-btn variant="text" color="grey" @click="handleClose">Cancel</v-btn>
+          <v-btn
+            type="submit"
+            color="primary"
+            class="px-6"
+            :loading="isSubmitting"
+            :disabled="isSubmitting"
+          >
+            {{ submitLabel }}
+          </v-btn>
+        </div>
       </v-form>
     </v-card-text>
   </v-card>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from 'vue'
-import { useDropZone } from '@vueuse/core'
+import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
+import { storeToRefs } from 'pinia'
 import { useProductStore } from '../../../Store/ProductStore'
-
+import type { Product } from '../../../types'
 
 interface CreateProductFormState {
   title: string
@@ -155,25 +221,39 @@ interface CreateProductFormState {
   image: string
 }
 
+const props = withDefaults(
+  defineProps<{
+    mode?: 'create' | 'edit'
+    product?: Product | null
+  }>(),
+  { mode: 'create', product: null },
+)
+
+const emit = defineEmits<{
+  (e: 'created', product: Product): void
+  (e: 'updated', product: Product): void
+  (e: 'close'): void
+}>()
+
 const productStore = useProductStore()
+const {
+  creatingProduct,
+  creationError,
+  creationSuccess,
+  loadingCategories,
+  updatingProducts,
+} = storeToRefs(productStore)
 
 const formRef = ref()
 const imageFile = ref<File | null>(null)
-// note: requires @vueuse/core to be installed in the project
 const hiddenFileInput = ref<HTMLInputElement | null>(null)
 const previewObjectUrl = ref<string | null>(null)
 const dropzoneRef = ref<HTMLElement | null>(null)
-const { files, isOver } = useDropZone(dropzoneRef, {
-  multiple: false,
-  onDrop() {
-    const f = files.value?.[0]
-    if (f) setImageFile(f as File)
-  },
-})
-const emit = defineEmits<{
-  (e: 'created', product: any): void
-  (e: 'close'): void
-}>()
+const dropzoneCleanup = ref<(() => void) | null>(null)
+const isOver = ref(false)
+const updateSuccess = ref<string | null>(null)
+const updateError = ref<string | null>(null)
+const localError = ref<string | null>(null)
 
 const form = reactive<CreateProductFormState>({
   title: '',
@@ -184,10 +264,19 @@ const form = reactive<CreateProductFormState>({
   image: '',
 })
 
-const loadingCategories = computed(() => productStore.loadingCategories)
-const creatingProduct = computed(() => productStore.creatingProduct)
-const creationError = computed(() => productStore.creationError)
-const creationSuccess = computed(() => productStore.creationSuccess)
+const isEditMode = computed(() => props.mode === 'edit' && !!props.product)
+const titleLabel = computed(() =>
+  isEditMode.value ? 'Update Product' : 'Add New Product',
+)
+const submitLabel = computed(() =>
+  isEditMode.value ? 'Save changes' : 'Add product',
+)
+const updateLoading = computed(() =>
+  props.product ? !!updatingProducts.value?.[props.product.id] : false,
+)
+const isSubmitting = computed(() =>
+  isEditMode.value ? updateLoading.value : creatingProduct.value,
+)
 
 const categoryOptions = computed(() =>
   productStore.categories.map((category) => ({
@@ -196,160 +285,195 @@ const categoryOptions = computed(() =>
   })),
 )
 
-const requiredRule = (value: unknown) => {
-  if (value === null || value === undefined || value === '') {
-    return 'This field is required.'
-  }
-  return true
-}
+const successMessage = computed(() =>
+  isEditMode.value ? updateSuccess.value : creationSuccess.value,
+)
 
-const positiveNumberRule = (value: number | null) => {
-  if (typeof value === 'number' && value >= 0) {
-    return true
-  }
-  return 'Enter a valid positive value.'
-}
+const errorMessage = computed(() => {
+  if (localError.value) return localError.value
+  return isEditMode.value ? updateError.value : creationError.value
+})
 
-const localError = ref<string | null>(null)
+const requiredRule = (v: unknown) => (!!v ? true : 'This field is required.')
+const positiveNumberRule = (v: number | null) =>
+  typeof v === 'number' && v >= 0 ? true : 'Enter a valid positive value.'
+
+const clearObjectUrl = () => {
+  if (previewObjectUrl.value) {
+    try {
+      URL.revokeObjectURL(previewObjectUrl.value)
+    } catch {}
+    previewObjectUrl.value = null
+  }
+}
 
 const resetForm = () => {
   form.title = ''
   form.price = null
-  form.categoryId = null
   form.stock = null
+  form.categoryId = null
   form.description = ''
   form.image = ''
+  localError.value = null
+  updateError.value = null
+  updateSuccess.value = null
   imageFile.value = null
-  if (previewObjectUrl.value) {
-    try {
-      URL.revokeObjectURL(previewObjectUrl.value)
-    } catch (e) {}
-    previewObjectUrl.value = null
-  }
-}
-
-// We upload files directly via ProductStore.uploadImage; preview uses object URL
-
-const previewUrl = computed(() => previewObjectUrl.value || form.image || null)
-
-const emitClose = () => emit('close')
-
-const triggerFilePicker = () => {
-  hiddenFileInput.value?.click()
-}
-
-const onFileChange = (e: Event) => {
-  const target = e.target as HTMLInputElement
-  const file = target.files && target.files[0]
-  if (file) setImageFile(file)
-}
-
-// useDropZone handles drag/drop interactions; isOver indicates active state
-
-const setImageFile = (file: File) => {
-  if (previewObjectUrl.value) {
-    try { URL.revokeObjectURL(previewObjectUrl.value) } catch (e) {}
-    previewObjectUrl.value = null
-  }
-  imageFile.value = file
-  try { previewObjectUrl.value = URL.createObjectURL(file) } catch (e) { previewObjectUrl.value = null }
-}
-
-const handleSubmit = async () => {
-  const formEl = formRef.value as { validate: () => Promise<{ valid: boolean }> }
-  const { valid } = formEl ? await formEl.validate() : { valid: true }
-  if (!valid || form.price === null || form.categoryId === null) {
-    return
-  }
-
-    try {
-    let imagesPayload: string[] = []
-
-    if (imageFile.value) {
-      // First try Cloudinary unsigned upload if configured via Vite env
-      const CLOUD_NAME = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME
-      const UPLOAD_PRESET = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET
-
-      if (CLOUD_NAME && UPLOAD_PRESET) {
-        try {
-          const fd = new FormData()
-          fd.append('file', imageFile.value)
-          fd.append('upload_preset', UPLOAD_PRESET)
-
-          const resp = await fetch(
-            `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/upload`,
-            { method: 'POST', body: fd },
-          )
-
-          if (!resp.ok) {
-            throw new Error('Cloudinary upload failed')
-          }
-
-          const cloudData = await resp.json()
-          if (cloudData?.secure_url) {
-            imagesPayload = [cloudData.secure_url]
-          }
-        } catch (cloudErr) {
-          // Cloudinary failed; fall back to productStore.uploadImage
-          try {
-            const uploadedUrl = await productStore.uploadImage(imageFile.value)
-            if (uploadedUrl) imagesPayload = [uploadedUrl]
-          } catch (uploadErr) {
-            localError.value = 'Image upload failed. Please provide a publicly accessible image URL instead.'
-            return
-          }
-        }
-      } else {
-        // No cloudinary config: fall back to productStore.uploadImage
-        try {
-          const uploadedUrl = await productStore.uploadImage(imageFile.value)
-          if (uploadedUrl) imagesPayload = [uploadedUrl]
-        } catch (uploadErr) {
-          localError.value = 'Image upload failed. Please provide a publicly accessible image URL instead.'
-          return
-        }
-      }
-    } else if (form.image) {
-      imagesPayload = [form.image.trim()]
-    }
-
-    // Validate that images are URLs (server expects URL addresses)
-    const isHttpUrl = (s: string) => {
-      try {
-        const u = new URL(s)
-        return u.protocol === 'http:' || u.protocol === 'https:'
-      } catch (e) {
-        return false
-      }
-    }
-
-    if (imagesPayload.length > 0 && !imagesPayload.every((i) => isHttpUrl(i))) {
-      localError.value = 'The API requires public image URLs. Upload your image to an image host and paste the URL, or configure an upload provider.'
-      return
-    }
-
-    const created = await productStore.createProduct({
-      title: form.title.trim(),
-      price: Number(form.price),
-      description: form.description.trim(),
-      categoryId: form.categoryId,
-      images: imagesPayload,
-    })
-    resetForm()
-    // notify parent that a product was created
-    emit('created', created)
-  } catch (error) {
-    // Error state handled by the store
-  }
-}
-
-const clearCreationStatus = () => {
+  clearObjectUrl()
+  hiddenFileInput.value && (hiddenFileInput.value.value = '')
   productStore.clearCreationStatus()
 }
 
-onMounted(() => {
-  if (!productStore.hasCategories) {
-    productStore.fetchCategories()
+const hydrateForm = (p: Product | null | undefined) => {
+  if (!p) return resetForm()
+  form.title = p.title
+  form.price = p.price
+  form.categoryId = p.category?.id ?? null
+  form.description = p.description
+  form.image = p.images?.[0] ?? ''
+  form.stock = p.stock ?? null
+  clearObjectUrl()
+}
+
+watch(
+  () => props.product,
+  (p) => (isEditMode.value ? hydrateForm(p) : resetForm()),
+  { immediate: true },
+)
+watch(
+  () => props.mode,
+  () => {
+    if (props.mode === 'create') resetForm()
+    else if (props.mode === 'edit') hydrateForm(props.product)
+  },
+)
+watch(() => form.image, (v) => v && imageFile.value && (imageFile.value = null))
+
+const MAX_FILE_SIZE = 5 * 1024 * 1024
+
+const bindDropzone = (el: HTMLElement | null) => {
+  dropzoneCleanup.value?.()
+  if (!el) return
+  const prevent = (e: DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
   }
+  const enter = (e: DragEvent) => (prevent(e), (isOver.value = true))
+  const over = (e: DragEvent) => (prevent(e), (isOver.value = true))
+  const leave = (e: DragEvent) => (prevent(e), (isOver.value = false))
+  const drop = (e: DragEvent) => {
+    prevent(e)
+    isOver.value = false
+    const file = e.dataTransfer?.files?.[0]
+    if (file) setImageFile(file)
+  }
+  el.addEventListener('dragenter', enter)
+  el.addEventListener('dragover', over)
+  el.addEventListener('dragleave', leave)
+  el.addEventListener('drop', drop)
+  dropzoneCleanup.value = () => {
+    el.removeEventListener('dragenter', enter)
+    el.removeEventListener('dragover', over)
+    el.removeEventListener('dragleave', leave)
+    el.removeEventListener('drop', drop)
+  }
+}
+
+const previewUrl = computed(() =>
+  previewObjectUrl.value || form.image?.trim() || props.product?.images?.[0] || null,
+)
+
+const triggerFilePicker = () => hiddenFileInput.value?.click()
+const onFileChange = (e: Event) => {
+  const f = (e.target as HTMLInputElement).files?.[0]
+  if (f) setImageFile(f)
+}
+const setImageFile = (file: File) => {
+  localError.value = null
+  if (!file.type.startsWith('image/'))
+    return (localError.value = 'Please choose an image file.')
+  if (file.size > MAX_FILE_SIZE)
+    return (localError.value = 'Image must be smaller than 5 MB.')
+  clearObjectUrl()
+  imageFile.value = file
+  form.image = ''
+  previewObjectUrl.value = URL.createObjectURL(file)
+  hiddenFileInput.value && (hiddenFileInput.value.value = '')
+}
+const removeSelectedImage = () => {
+  imageFile.value = null
+  clearObjectUrl()
+  form.image = ''
+}
+const removeSelectedFileOnly = () => {
+  if (imageFile.value) {
+    imageFile.value = null
+    clearObjectUrl()
+  }
+}
+
+const buildImagesPayload = async () => {
+  const imgs: string[] = []
+  if (imageFile.value) {
+    const uploaded = await productStore.uploadImage(imageFile.value)
+    if (!uploaded) throw new Error('Image upload failed.')
+    imgs.push(uploaded)
+  } else if (form.image?.trim()) imgs.push(form.image.trim())
+  else if (isEditMode.value && props.product?.images?.length)
+    imgs.push(...props.product.images)
+  return imgs
+}
+
+const handleSubmit = async () => {
+  const res = formRef.value ? await formRef.value.validate() : { valid: true }
+  if (!res.valid || form.price === null || form.categoryId === null) return
+  localError.value = updateError.value = updateSuccess.value = null
+  try {
+    const imgs = await buildImagesPayload()
+    if (!imgs.length && !isEditMode.value)
+      return (localError.value = 'Please provide an image.')
+    if (isEditMode.value && props.product) {
+      const updated = await productStore.updateProduct(props.product.id, {
+        title: form.title.trim(),
+        price: Number(form.price),
+        description: form.description.trim(),
+        categoryId: form.categoryId,
+        images: imgs,
+      })
+      updateSuccess.value = 'Product updated successfully.'
+      emit('updated', updated)
+    } else {
+      const created = await productStore.createProduct({
+        title: form.title.trim(),
+        price: Number(form.price),
+        description: form.description.trim(),
+        categoryId: form.categoryId,
+        images: imgs,
+      })
+      emit('created', created)
+      resetForm()
+    }
+  } catch (err: any) {
+    const msg = err?.message || 'Something went wrong.'
+    isEditMode.value ? (updateError.value = msg) : (localError.value = msg)
+  }
+}
+
+const clearMessages = () => {
+  localError.value = updateError.value = updateSuccess.value = null
+  productStore.clearCreationStatus()
+}
+const handleClose = () => {
+  clearMessages()
+  emit('close')
+}
+
+onMounted(() => {
+  if (!productStore.hasCategories) productStore.fetchCategories()
+  bindDropzone(dropzoneRef.value)
+})
+onBeforeUnmount(() => {
+  clearObjectUrl()
+  dropzoneCleanup.value?.()
+  productStore.clearCreationStatus()
 })
 </script>

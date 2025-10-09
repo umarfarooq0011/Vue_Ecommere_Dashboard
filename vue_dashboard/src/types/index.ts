@@ -46,6 +46,7 @@ export interface Product {
   creationAt: string
   updatedAt: string
   category: Category
+   stock?: number
 }
 
 export interface CreateProductPayload {
@@ -54,4 +55,13 @@ export interface CreateProductPayload {
   description: string
   categoryId: number
   images: string[]
+}
+
+
+export interface UpdateProductPayload {
+  title?: string
+  price?: number
+  description?: string
+  categoryId?: number
+  images?: string[]
 }
