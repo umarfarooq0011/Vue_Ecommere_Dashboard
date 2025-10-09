@@ -133,7 +133,7 @@ const onSubmit = async () => {
 
   try {
     await auth.loginUser({ ...form })
-    const redirectPath = (route.query.redirect as string) || '/'
+    const redirectPath = (route.query.redirect as string) || '/Dashboard'
     router.push(redirectPath)
   } catch (error) {
     console.error('Login failed:', error)

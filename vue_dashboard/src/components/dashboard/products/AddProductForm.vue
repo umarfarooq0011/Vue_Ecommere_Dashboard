@@ -362,12 +362,7 @@ const removeSelectedImage = () => {
   clearObjectUrl()
   form.image = ''
 }
-const removeSelectedFileOnly = () => {
-  if (imageFile.value) {
-    imageFile.value = null
-    clearObjectUrl()
-  }
-}
+
 
 const buildImagesPayload = async () => {
   const imgs: string[] = []

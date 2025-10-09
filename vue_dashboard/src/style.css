@@ -1,22 +1,2 @@
 @import "tailwindcss";
 
-.v-btn {
-  transition: none !important;
-}
-
-.v-btn::before {
-  transition: none !important;
-}
-
-.v-btn:hover::before,
-.v-btn:focus-visible::before,
-.v-btn:active::before {
-  opacity: 0 !important;
-}
-
-.v-btn:hover,
-.v-btn:focus-visible,
-.v-btn:active {
-  box-shadow: none !important;
-  transform: none !important;
-}
