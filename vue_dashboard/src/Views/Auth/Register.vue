@@ -44,7 +44,7 @@
           
           <v-select
             v-model="form.role"
-            :items="['Admin', 'User']"
+            :items="roles"
             label="Select Role"
             variant="outlined"
             class="rounded-lg"
@@ -55,11 +55,18 @@
             color="primary"
             block
             size="large"
+            :loading="auth.loading"
+            :disabled="auth.loading"
             class="mt-3 font-semibold tracking-wide transition-transform duration-300 hover:scale-[1.02]"
             @click="onSubmit"
           >
             Create Account
           </v-btn>
+
+          <p v-if="errorMessage" class="text-sm text-red-500 text-center">
+            {{ errorMessage }}
+          </p>
+
         </div>
       </v-card-text>
 
@@ -79,34 +86,35 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
-import { RouterLink } from 'vue-router'
-import router from '../../router'
+import { ref, reactive } from 'vue'
+import { RouterLink, useRouter } from 'vue-router'
+
 import { useAuthStore } from '../../Store/AuthStore'
+import type { RegisterPayload } from '../../types'
 
-const store = useAuthStore()
+const router = useRouter()
+const auth = useAuthStore()
 
-type payload = {
-  username: string
-  email: string
-  password: string
-  role: string
-}
+const roles = ['Admin', 'User']
 
-const form = ref<payload>({
-  username: 'Umar',
-  email: 'umarfarooq6153@gmail.com',
-  password: 'Umar1122',
-  role: 'Admin'
+const form = reactive<RegisterPayload>({
+  username: '',
+  email: '',
+  password: '',
+  role: 'User',
 })
+
+const errorMessage = ref('')
 
 const onSubmit = async () => {
   try {
-    await store.registerUser(form.value)
-    router.push('/')
-    console.log('Registration successful', form.value);
+    await auth.registerUser(form)
+    // Redirect to login with a query flag so the login page can show a success toast
+    router.push({ name: 'login', query: { registered: '1' } })
+    console.log('Registration successful', form);
   } catch (error) {
     console.error('Registration failed:', error)
+        errorMessage.value = 'Unable to create your account. Please try again.'
   }
 }
 

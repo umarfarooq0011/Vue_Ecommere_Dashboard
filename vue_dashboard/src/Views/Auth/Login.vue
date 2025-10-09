@@ -22,14 +22,15 @@
       <v-card-text class="px-6 sm:px-8 pb-2 pt-4">
         <div class="flex flex-col gap-4">
           <v-text-field
-            v-model="email"
+            v-model="form.email"
             label="Email Address"
+            type="email"
             variant="outlined"
             class="rounded-lg"
           />
 
           <v-text-field
-            v-model="password"
+            v-model="form.password"
             type="password"
             label="Password"
             variant="outlined"
@@ -40,12 +41,18 @@
             color="primary"
             block
             size="large"
+            :loading="auth.loading"
+            :disabled="auth.loading"
             class="mt-3 font-semibold tracking-wide shadow-md
                    hover:scale-[1.02] transition-transform"
-            @click="login"
+            @click="onSubmit"
           >
             Sign In
           </v-btn>
+
+          <p v-if="errorMessage" class="text-sm text-red-500 text-center">
+            {{ errorMessage }}
+          </p>
         </div>
       </v-card-text>
 
@@ -66,13 +73,37 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
-import { RouterLink } from 'vue-router'
+import { reactive, ref } from 'vue'
+import { RouterLink, useRouter, useRoute } from 'vue-router'
+import { useAuthStore } from '../../Store/AuthStore'
 
-const email = ref('')
-const password = ref('')
+const router = useRouter()
+const route = useRoute()
+const auth = useAuthStore()
 
-const login = () => {
-  console.log('Login with:', { email: email.value, password: password.value })
+const form = reactive({
+  email: '',
+  password: '',
+})
+
+const errorMessage = ref('')
+
+const onSubmit = async () => {
+  errorMessage.value = ''
+
+  if (!form.email || !form.password) {
+    errorMessage.value = 'Please provide an email and password.'
+    return
+  }
+
+  try {
+    await auth.loginUser({ ...form })
+    const redirectPath = (route.query.redirect as string) || '/'
+    router.push(redirectPath)
+  } catch (error) {
+    console.error('Login failed:', error)
+    // Prefer server-supplied message when available
+    errorMessage.value = (error as Error).message || 'Unable to sign in with the provided credentials.'
+  }
 }
 </script>
