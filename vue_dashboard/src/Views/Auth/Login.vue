@@ -99,9 +99,7 @@ onMounted(() => {
     successMessage.value = 'Registration successful. Please sign in with the same credentials.'
   }
 
-  if (typeof window === 'undefined') {
-    return
-  }
+  
 
   try {
     const storedRegistration = window.localStorage.getItem(

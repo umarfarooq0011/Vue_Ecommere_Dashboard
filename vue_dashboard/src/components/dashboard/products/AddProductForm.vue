@@ -1,72 +1,26 @@
 <template>
-  <v-card class="h-100 overflow-hidden" elevation="2">
-    <!-- Header -->
-    <div class="flex items-center justify-between px-5 pt-5 pb-3">
-      <div>
-        <h2 class="text-lg font-semibold text-gray-900">{{ titleLabel }}</h2>
-        <p class="text-sm text-gray-500" v-if="isEditMode">
-          Update product details, pricing, and imagery in a single place.
-        </p>
-        <p class="text-sm text-gray-500" v-else>
-          Create a stunning product card with imagery, price, and category in minutes.
-        </p>
-      </div>
-      <v-btn icon aria-label="Close" variant="text" color="grey" @click="handleClose">
-        <v-icon>mdi-close</v-icon>
-      </v-btn>
-    </div>
-
-    <v-divider />
-
-    <v-card-text class="p-5 max-h-[70vh] overflow-y-auto space-y-4">
-      <!-- Success / Error Alerts -->
-      <v-alert
-        v-if="successMessage"
-        type="success"
-        class="rounded-xl"
-        density="comfortable"
-        closable
-        @click:close="clearMessages"
-      >
-        {{ successMessage }}
-      </v-alert>
-
-      <v-alert
-        v-if="errorMessage"
-        type="error"
-        class="rounded-xl"
-        density="comfortable"
-        closable
-        @click:close="clearMessages"
-      >
-        {{ errorMessage }}
-      </v-alert>
-
-      <!-- Form -->
-      <v-form ref="formRef" @submit.prevent="handleSubmit" class="space-y-4">
-        <v-text-field
-          v-model="form.title"
-          label="Product title"
-          placeholder="E.g. Premium leather backpack"
-          variant="outlined"
-          :rules="[requiredRule]"
-        />
-
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+  <v-card class="rounded-2xl" elevation="8">
+    <v-card-text class="space-y-6">
+      <v-form ref="formRef" @submit.prevent="handleSubmit">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <v-text-field
-            v-model.number="form.price"
-            label="Price"
+            v-model="form.title"
+            label="Title"
+            variant="outlined"
+            :rules="[requiredRule]"
+          />
+          <v-text-field
+            v-model="form.price"
+            label="Price (USD)"
             type="number"
             min="0"
             step="0.01"
-            prefix="$"
             variant="outlined"
             :rules="[requiredRule, positiveNumberRule]"
           />
-
           <v-text-field
-            v-model.number="form.stock"
-            label="Stock"
+            v-model="form.stock"
+            label="Stock Quantity"
             type="number"
             min="0"
             step="1"
@@ -76,7 +30,6 @@
           />
         </div>
 
-      
         <v-textarea
           v-model="form.description"
           label="Description"
@@ -90,24 +43,13 @@
         <div
           ref="dropzoneRef"
           class="relative border-2 border-dashed border-slate-300 rounded-2xl transition-all duration-200 cursor-pointer group"
-          :class="{
-            'border-primary bg-primary/5 shadow-inner': isOver,
-           
-          }"
+          :class="{ 'border-primary bg-primary/5 shadow-inner': isOver }"
           role="button"
           tabindex="0"
           @click="triggerFilePicker"
           @keydown.enter="triggerFilePicker"
           @keydown.space="triggerFilePicker"
         >
-          <input
-            ref="hiddenFileInput"
-            type="file"
-            accept="image/*"
-            class="sr-only"
-            @change="onFileChange"
-          />
-
           <div
             v-if="!previewUrl"
             class="flex flex-col items-center justify-center px-6 py-10 text-center text-slate-500 gap-3"
@@ -115,10 +57,10 @@
             <v-icon size="40" color="primary">mdi-cloud-upload-outline</v-icon>
             <p class="text-base font-medium">Drag & drop product imagery</p>
             <p class="text-sm text-slate-400">
-              High-resolution PNG or JPG up to 5&nbsp;MB.
+              High-resolution PNG or JPG up to 5 MB.
             </p>
             <v-btn
-              variant="tonal"
+              type="button"
               color="primary"
               class="mt-1"
               @click.stop="triggerFilePicker"
@@ -132,33 +74,21 @@
             <div
               class="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent flex items-end justify-between p-3"
             >
-              <span class="text-white text-sm font-medium">Image preview</span>
-              <div class="flex items-center gap-2">
-                
-                <v-tooltip text="Remove" location="bottom">
-                  <template #activator="{ props }">
-                    <v-btn
-                      icon
-                      size="small"
-                      variant="text"
-                      color="white"
-                      v-bind="props"
-                      @click.stop.prevent="removeSelectedImage"
-                    >
-                      <v-icon size="20">mdi-close</v-icon>
-                    </v-btn>
-                  </template>
-                </v-tooltip>
-              </div>
+              <v-btn
+                color="error"
+                type="button"
+                size="small"
+                @click.stop="removeSelectedImage"
+              >
+                Remove
+              </v-btn>
             </div>
           </div>
         </div>
 
-       
-
         <!-- Footer Buttons -->
         <div class="flex justify-end gap-3 pt-2">
-          <v-btn variant="text" color="grey" @click="handleClose">Cancel</v-btn>
+          <v-btn type="button" color="grey" @click="handleClose">Cancel</v-btn>
           <v-btn
             type="submit"
             color="primary"
@@ -175,7 +105,8 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, reactive, ref, watch } from 'vue'
+import { useDropZone, useFileDialog, useObjectUrl } from '@vueuse/core'
 import { storeToRefs } from 'pinia'
 import { useProductStore } from '../../../Store/ProductStore'
 import type { Product } from '../../../types'
@@ -188,6 +119,7 @@ interface CreateProductFormState {
   image: string
 }
 
+// Props and emits
 const props = withDefaults(
   defineProps<{
     mode?: 'create' | 'edit'
@@ -202,24 +134,20 @@ const emit = defineEmits<{
   (e: 'close'): void
 }>()
 
+// Store setup
 const productStore = useProductStore()
-const {
-  creatingProduct,
-  creationError,
-  creationSuccess,
-} = storeToRefs(productStore)
+const { creatingProduct } = storeToRefs(productStore)
 
+// Refs
 const formRef = ref()
 const imageFile = ref<File | null>(null)
-const hiddenFileInput = ref<HTMLInputElement | null>(null)
-const previewObjectUrl = ref<string | null>(null)
+const previewObjectUrl = useObjectUrl(imageFile)
 const dropzoneRef = ref<HTMLElement | null>(null)
-const dropzoneCleanup = ref<(() => void) | null>(null)
-const isOver = ref(false)
-const updateSuccess = ref<string | null>(null)
-const updateError = ref<string | null>(null)
-const localError = ref<string | null>(null)
 
+const { open: openFileDialog, reset: resetFileDialog, onChange: onFileDialogChange } =
+  useFileDialog({ accept: 'image/*', multiple: false })
+
+// Form data
 const form = reactive<CreateProductFormState>({
   title: '',
   price: null,
@@ -228,10 +156,8 @@ const form = reactive<CreateProductFormState>({
   image: '',
 })
 
+// Computed helpers
 const isEditMode = computed(() => props.mode === 'edit' && !!props.product)
-const titleLabel = computed(() =>
-  isEditMode.value ? 'Update Product' : 'Add New Product',
-)
 const submitLabel = computed(() =>
   isEditMode.value ? 'Save changes' : 'Add product',
 )
@@ -241,43 +167,28 @@ const updateLoading = computed(() =>
 const isSubmitting = computed(() =>
   isEditMode.value ? updateLoading.value : creatingProduct.value,
 )
-
-
-
-const successMessage = computed(() =>
-  isEditMode.value ? updateSuccess.value : creationSuccess.value,
+const previewUrl = computed(
+  () =>
+    previewObjectUrl.value ||
+    form.image?.trim() ||
+    props.product?.images?.[0] ||
+    null,
 )
 
-const errorMessage = computed(() => {
-  if (localError.value) return localError.value
-  return isEditMode.value ? updateError.value : creationError.value
-})
-
+// Validation rules
 const requiredRule = (v: unknown) => (!!v ? true : 'This field is required.')
 const positiveNumberRule = (v: number | null) =>
   typeof v === 'number' && v >= 0 ? true : 'Enter a valid positive value.'
 
-const clearObjectUrl = () => {
-  if (previewObjectUrl.value) {
-    try {
-      URL.revokeObjectURL(previewObjectUrl.value)
-    } catch {}
-    previewObjectUrl.value = null
-  }
-}
-
+// Form utilities
 const resetForm = () => {
   form.title = ''
   form.price = null
   form.stock = null
   form.description = ''
   form.image = ''
-  localError.value = null
-  updateError.value = null
-  updateSuccess.value = null
   imageFile.value = null
-  clearObjectUrl()
-  hiddenFileInput.value && (hiddenFileInput.value.value = '')
+  resetFileDialog()
   productStore.clearCreationStatus()
 }
 
@@ -288,81 +199,52 @@ const hydrateForm = (p: Product | null | undefined) => {
   form.description = p.description
   form.image = p.images?.[0] ?? ''
   form.stock = p.stock ?? null
-  clearObjectUrl()
+  imageFile.value = null
 }
 
+// Watchers
 watch(
-  () => props.product,
-  (p) => (isEditMode.value ? hydrateForm(p) : resetForm()),
+  [() => props.mode, () => props.product],
+  ([mode, product]) => {
+    if (mode === 'edit') hydrateForm(product)
+    else resetForm()
+  },
   { immediate: true },
 )
-watch(
-  () => props.mode,
-  () => {
-    if (props.mode === 'create') resetForm()
-    else if (props.mode === 'edit') hydrateForm(props.product)
-  },
-)
-watch(() => form.image, (v) => v && imageFile.value && (imageFile.value = null))
 
+// Image helpers
 const MAX_FILE_SIZE = 5 * 1024 * 1024
+const triggerFilePicker = () => openFileDialog()
 
-const bindDropzone = (el: HTMLElement | null) => {
-  dropzoneCleanup.value?.()
-  if (!el) return
-  const prevent = (e: DragEvent) => {
-    e.preventDefault()
-    e.stopPropagation()
-  }
-  const enter = (e: DragEvent) => (prevent(e), (isOver.value = true))
-  const over = (e: DragEvent) => (prevent(e), (isOver.value = true))
-  const leave = (e: DragEvent) => (prevent(e), (isOver.value = false))
-  const drop = (e: DragEvent) => {
-    prevent(e)
-    isOver.value = false
-    const file = e.dataTransfer?.files?.[0]
-    if (file) setImageFile(file)
-  }
-  el.addEventListener('dragenter', enter)
-  el.addEventListener('dragover', over)
-  el.addEventListener('dragleave', leave)
-  el.addEventListener('drop', drop)
-  dropzoneCleanup.value = () => {
-    el.removeEventListener('dragenter', enter)
-    el.removeEventListener('dragover', over)
-    el.removeEventListener('dragleave', leave)
-    el.removeEventListener('drop', drop)
-  }
-}
-
-const previewUrl = computed(() =>
-  previewObjectUrl.value || form.image?.trim() || props.product?.images?.[0] || null,
-)
-
-const triggerFilePicker = () => hiddenFileInput.value?.click()
-const onFileChange = (e: Event) => {
-  const f = (e.target as HTMLInputElement).files?.[0]
-  if (f) setImageFile(f)
-}
 const setImageFile = (file: File) => {
-  localError.value = null
-  if (!file.type.startsWith('image/'))
-    return (localError.value = 'Please choose an image file.')
-  if (file.size > MAX_FILE_SIZE)
-    return (localError.value = 'Image must be smaller than 5 MB.')
-  clearObjectUrl()
+  if (!file.type.startsWith('image/')) return
+  if (file.size > MAX_FILE_SIZE) return
   imageFile.value = file
   form.image = ''
-  previewObjectUrl.value = URL.createObjectURL(file)
-  hiddenFileInput.value && (hiddenFileInput.value.value = '')
+  resetFileDialog()
 }
+
 const removeSelectedImage = () => {
   imageFile.value = null
-  clearObjectUrl()
   form.image = ''
+  resetFileDialog()
 }
 
+onFileDialogChange((files) => {
+  const file = files?.item(0)
+  if (file) setImageFile(file)
+})
 
+const { isOverDropZone: isOver } = useDropZone(dropzoneRef, {
+  onDrop(files) {
+    const file = files?.[0]
+    if (file) setImageFile(file)
+  },
+})
+
+// ...existing code...
+
+// Upload and submit
 const buildImagesPayload = async () => {
   const imgs: string[] = []
   if (imageFile.value) {
@@ -377,12 +259,10 @@ const buildImagesPayload = async () => {
 
 const handleSubmit = async () => {
   const res = formRef.value ? await formRef.value.validate() : { valid: true }
-  if (!res.valid || form.price === null ) return
-  localError.value = updateError.value = updateSuccess.value = null
+  if (!res.valid || form.price === null) return
   try {
     const imgs = await buildImagesPayload()
-    if (!imgs.length && !isEditMode.value)
-      return (localError.value = 'Please provide an image.')
+    if (!imgs.length && !isEditMode.value) return
     if (isEditMode.value && props.product) {
       const updated = await productStore.updateProduct(props.product.id, {
         title: form.title.trim(),
@@ -390,7 +270,6 @@ const handleSubmit = async () => {
         description: form.description.trim(),
         images: imgs,
       })
-      updateSuccess.value = 'Product updated successfully.'
       emit('updated', updated)
     } else {
       const created = await productStore.createProduct({
@@ -402,27 +281,14 @@ const handleSubmit = async () => {
       emit('created', created)
       resetForm()
     }
-  } catch (err: any) {
-    const msg = err?.message || 'Something went wrong.'
-    isEditMode.value ? (updateError.value = msg) : (localError.value = msg)
+  } catch (err) {
+    console.error(err)
   }
 }
 
-const clearMessages = () => {
-  localError.value = updateError.value = updateSuccess.value = null
-  productStore.clearCreationStatus()
-}
-const handleClose = () => {
-  clearMessages()
-  emit('close')
-}
+const handleClose = () => emit('close')
 
-onMounted(() => {
-  bindDropzone(dropzoneRef.value)
-})
 onBeforeUnmount(() => {
-  clearObjectUrl()
-  dropzoneCleanup.value?.()
   productStore.clearCreationStatus()
 })
 </script>
