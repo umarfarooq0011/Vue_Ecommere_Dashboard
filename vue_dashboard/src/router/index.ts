@@ -8,14 +8,22 @@ import Dashboard from '../Views/index.vue'
 
 
 import { useAuthStore } from "../Store/AuthStore";
+import Categories from "../Views/Categories.vue";
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
     {
-      path: "/",
+      path: "/Dashboard",
       name: "dashboard",
       component: Dashboard,
+      meta: { requiresAuth: true },
+    },
+
+    {
+      path: "/categories",
+      name: "categories",
+      component: Categories,
       meta: { requiresAuth: true },
     },
 
