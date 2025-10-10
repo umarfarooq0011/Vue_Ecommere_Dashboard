@@ -10,7 +10,7 @@
             :rules="[requiredRule]"
           />
           <v-text-field
-            v-model="form.price"
+            v-model.number="form.price"
             label="Price (USD)"
             type="number"
             min="0"
@@ -54,8 +54,7 @@
             v-if="!previewUrl"
             class="flex flex-col items-center justify-center px-6 py-10 text-center text-slate-500 gap-3"
           >
-            <v-icon size="40" color="primary">mdi-cloud-upload-outline</v-icon>
-            <p class="text-base font-medium">Drag & drop product imagery</p>
+            <p class="text-base font-medium">Drag & drop product image</p>
             <p class="text-sm text-slate-400">
               High-resolution PNG or JPG up to 5 MB.
             </p>
@@ -70,7 +69,7 @@
           </div>
 
           <div v-else class="relative overflow-hidden rounded-xl">
-            <v-img :src="previewUrl" height="210" cover class="rounded-xl" />
+            <v-img :src="previewUrl" height="210" object-fit="cover" class="rounded-xl" />
             <div
               class="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent flex items-end justify-between p-3"
             >
@@ -127,7 +126,7 @@ const props = withDefaults(
   }>(),
   { mode: 'create', product: null },
 )
-
+  // Emits
 const emit = defineEmits<{
   (e: 'created', product: Product): void
   (e: 'updated', product: Product): void
@@ -177,8 +176,12 @@ const previewUrl = computed(
 
 // Validation rules
 const requiredRule = (v: unknown) => (!!v ? true : 'This field is required.')
-const positiveNumberRule = (v: number | null) =>
-  typeof v === 'number' && v >= 0 ? true : 'Enter a valid positive value.'
+const positiveNumberRule = (v: number | string | null) => {
+  // Accept numbers or numeric strings greater than or equal to 0
+  if (v === null || v === undefined || v === '') return 'Enter a valid positive value.'
+  const n = Number(v)
+  return !Number.isNaN(n) && n >= 0 ? true : 'Enter a valid positive value.'
+}
 
 // Form utilities
 const resetForm = () => {
@@ -242,7 +245,7 @@ const { isOverDropZone: isOver } = useDropZone(dropzoneRef, {
   },
 })
 
-// ...existing code...
+
 
 // Upload and submit
 const buildImagesPayload = async () => {

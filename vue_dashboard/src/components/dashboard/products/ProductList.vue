@@ -14,7 +14,6 @@
           density="comfortable"
           hide-details
           clearable
-          prepend-inner-icon="mdi-magnify"
           class="sm:max-w-xs"
         />
         <div class="flex items-center gap-3">
@@ -71,8 +70,6 @@
           v-if="!products.length"
           class="rounded-2xl border border-dashed border-slate-300 p-10 text-center text-slate-500"
         >
-          <v-icon size="40" color="primary" class="mb-3"
-            >mdi-package-variant</v-icon
           >
           <h3 class="mb-1 text-lg font-semibold text-gray-800">
             No products to show yet
@@ -85,7 +82,6 @@
             color="primary"
             variant="tonal"
             class="mt-4"
-            prepend-icon="mdi-plus"
             @click="$emit('add')"
           >
             Create a product
@@ -208,7 +204,7 @@ const isDeleting = (id: number) => productStore.isDeletingProduct(id)
 const handlePageChange = (page: number) => {
   productStore.goToPage(page)
 }
-
+  
 const updatePageSize = (size: number) => {
   if (typeof size !== 'number') return
   productStore.setPageSize(size)
@@ -217,6 +213,7 @@ const updatePageSize = (size: number) => {
 let searchDebounceHandle: ReturnType<typeof setTimeout> | null = null
 
 watch(searchTerm, (value) => {
+  // Debounce search input
   if (searchDebounceHandle) clearTimeout(searchDebounceHandle)
   searchDebounceHandle = setTimeout(() => {
     productStore.fetchProducts(1, {
@@ -226,18 +223,22 @@ watch(searchTerm, (value) => {
     })
   }, 400)
 })
-
+ // Sync searchQuery with local searchTerm
 watch(searchQuery, (value) => {
+  // If the searchQuery changes, update the local searchTerm
   if ((value ?? '') !== (searchTerm.value ?? '')) {
     searchTerm.value = value ?? ''
   }
 })
-
+// Sync pageSizeModel with store
 watch(pageSizeModel, (size) => updatePageSize(size))
+
+
 
 watch(
   () => productStore.pagination.pageSize,
   (size) => {
+    // Keep local pageSizeModel in sync with store changes
     if (size !== pageSizeModel.value) {
       pageSizeModel.value = size
     }

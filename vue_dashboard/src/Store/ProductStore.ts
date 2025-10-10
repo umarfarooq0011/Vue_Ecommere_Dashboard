@@ -15,7 +15,7 @@ interface PaginationState {
 }
 
 export const useProductStore = defineStore('products', () => {
-  // ─── STATE ──────────────────────────────────────────────────────
+  // STATEs data variables
   const products = ref<Product[]>([])
 
   const loadingProducts = ref(false)
@@ -32,20 +32,24 @@ export const useProductStore = defineStore('products', () => {
   })
 
   const searchQuery = ref('')
+  // Track if we ve have loaded products at least once
   const hasHydrated = ref(false)
+  // Keep track of the search query for which we last loaded total count
+  // This helps avoid re-fetching total count if user navigates pages without changing search
   const totalLoadedForQuery = ref<string | null>(null)
-
+   // Track loading states for individual product operations
   const deletingProducts = ref<Record<number, boolean>>({})
   const updatingProducts = ref<Record<number, boolean>>({})
 
-  // ─── COMPUTED ───────────────────────────────────────────────────
+  // COMPUTED
   const totalPages = computed(() =>
     pagination.pageSize > 0
       ? Math.max(1, Math.ceil(pagination.total / pagination.pageSize))
       : 1,
   )
-
+     // Number of skeleton rows to show while loading
   const skeletonRows = computed(() => pagination.pageSize)
+  // Current range of products being shown (e.g. Showing 11-20 of 53)
   const showingRange = computed(() => {
     if (!products.value.length) return { start: 0, end: 0 }
     const start = (pagination.currentPage - 1) * pagination.pageSize + 1
@@ -53,7 +57,9 @@ export const useProductStore = defineStore('products', () => {
     return { start, end }
   })
 
-  // ─── TOTAL COUNT FOR SEARCH ─────────────────────────────────────
+  // TOTAL COUNT FOR SEARCH QUERY
+  // Fetch total number of products matching current search query
+  // This is done separately because the main products API supports offset/limit but not total count
   const fetchTotalForQuery = async (query: string) => {
     try {
       const params = new URLSearchParams()
@@ -67,12 +73,15 @@ export const useProductStore = defineStore('products', () => {
     }
   }
 
-  // ─── FETCH PRODUCTS ──────────────────────────────────────────────
+  // FETCH PRODUCTS 
   const fetchProducts = async (
     page = pagination.currentPage,
+    // options to control fetch behavior
     options: { force?: boolean; reloadTotal?: boolean; search?: string } = {},
   ) => {
+    // Destructure options with defaults
     const { force = false, reloadTotal = false, search } = options
+    // Prevent overlapping fetches unless forced mean to refresh data
     if (loadingProducts.value && !force) return
 
     if (typeof search === 'string') {
@@ -94,7 +103,8 @@ export const useProductStore = defineStore('products', () => {
       const { data } = await api.get<Product[]>(`/products?${params.toString()}`)
       products.value = data
       pagination.currentPage = page
-
+        // Decide if we need to refresh total count
+        // This is done separately because the main products API supports offset/limit but not total count
       const shouldRefreshTotal =
         reloadTotal ||
         !hasHydrated.value ||
@@ -120,20 +130,23 @@ export const useProductStore = defineStore('products', () => {
     }
   }
 
-  // ─── PAGINATION HELPERS ──────────────────────────────────────────
+  // PAGINATION HELPERS
+
   const setPageSize = async (size: number) => {
     if (size === pagination.pageSize) return
     pagination.pageSize = size
+    // When page size changes, reset to first page and reload products
     pagination.currentPage = 1
     await fetchProducts(1, { force: true, reloadTotal: true })
   }
 
   const goToPage = async (page: number) => {
+    // page number to valid range
     const target = Math.min(Math.max(page, 1), totalPages.value)
     await fetchProducts(target, { force: true })
   }
 
-  // ─── CREATE PRODUCT ──────────────────────────────────────────────
+  // CREATE PRODUCT for add new product
   const createProduct = async (payload: CreateProductPayload) => {
     creatingProduct.value = true
     creationError.value = null
@@ -147,6 +160,7 @@ export const useProductStore = defineStore('products', () => {
       }
 
       const { data } = await api.post<Product>('/products', body)
+      // some apis not return images in response
       const createdProduct: Product = { ...data, images }
 
       pagination.currentPage = 1
@@ -156,7 +170,7 @@ export const useProductStore = defineStore('products', () => {
       const existingIndex = products.value.findIndex(
         (product) => product.id === createdProduct.id,
       )
-
+        // If the new product already exists in the current list (e.g. after re-fetch), replace it
       if (existingIndex !== -1) {
         products.value.splice(existingIndex, 1, createdProduct)
       } else if (pagination.currentPage === 1) {
@@ -178,10 +192,11 @@ export const useProductStore = defineStore('products', () => {
     }
   }
 
-  // ─── UPDATE PRODUCT ──────────────────────────────────────────────
+  // UPDATE PRODUCT OR EDIT PRODUCT
   const updateProduct = async (id: number, payload: UpdateProductPayload) => {
     updatingProducts.value = { ...updatingProducts.value, [id]: true }
     try {
+      // If images array is empty, remove it from payload to avoid overwriting existing images
       const body: UpdateProductPayload = { ...payload }
       if (body.images && body.images.length === 0) delete body.images
 
@@ -194,12 +209,13 @@ export const useProductStore = defineStore('products', () => {
         error?.response?.data?.message || error?.message || 'Unable to update product.'
       throw new Error(message)
     } finally {
+      // Clean up updating state
       const { [id]: _omit, ...rest } = updatingProducts.value
       updatingProducts.value = rest
     }
   }
 
-  // ─── DELETE PRODUCT ──────────────────────────────────────────────
+  // DELETE PRODUCT 
   const deleteProduct = async (id: number) => {
     deletingProducts.value = { ...deletingProducts.value, [id]: true }
     try {
@@ -221,7 +237,7 @@ export const useProductStore = defineStore('products', () => {
     }
   }
 
-  // ─── IMAGE UPLOAD ────────────────────────────────────────────────
+  // IMAGE UPLOAD 
   const uploadImage = async (file: File) => {
     try {
       const formData = new FormData()
@@ -245,7 +261,7 @@ export const useProductStore = defineStore('products', () => {
     }
   }
 
-  // ─── HELPERS ────────────────────────────────────────────────────
+  // HELPERS
   const clearCreationStatus = () => {
     creationError.value = null
     creationSuccess.value = null
@@ -254,7 +270,7 @@ export const useProductStore = defineStore('products', () => {
   const isDeletingProduct = (id: number) => deletingProducts.value[id] === true
   const isUpdatingProduct = (id: number) => updatingProducts.value[id] === true
 
-  // ─── EXPORT ─────────────────────────────────────────────────────
+  
   return {
     products,
     loadingProducts,
